@@ -1,6 +1,7 @@
 include AUTHORS
 include LICENSE
 include README.rst
-recursive-include nani/templates *
 recursive-include hvad/templates *
 prune testproject
+
+recursive-exclude hvad/test_utils *

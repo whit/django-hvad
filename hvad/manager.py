@@ -1,20 +1,19 @@
 from collections import defaultdict
 from django.conf import settings
 from django.db import models, transaction, IntegrityError
-from django.db.models.query import (QuerySet, ValuesQuerySet, DateQuerySet, 
-    CHUNK_SIZE)
+from django.db.models.query import (QuerySet, ValuesQuerySet, DateQuerySet, CHUNK_SIZE)
 from django.db.models.query_utils import Q
 from django.utils.translation import get_language
 from hvad.fieldtranslator import translate
 from hvad.utils import combine
-import django
 import logging
 import sys
 
 logger = logging.getLogger(__name__)
 
 # maybe there should be an extra settings for this
-FALLBACK_LANGUAGES = [ code for code, name in settings.LANGUAGES ]
+FALLBACK_LANGUAGES = [code for code, name in settings.LANGUAGES]
+
 
 class FieldTranslator(dict):
     """
@@ -27,10 +26,10 @@ class FieldTranslator(dict):
         self.translated_fields  = tuple(self.manager.model._meta.get_all_field_names())
         super(FieldTranslator, self).__init__()
         
-    def get(self, key):
-        if not key in self:
-            self[key] = self.build(key)
-        return self[key]
+    def get(self, k, d=None):
+        if not k in self:
+            self[k] = self.build(k)
+        return self[k]
     
     def build(self, key):
         """
@@ -394,10 +393,6 @@ class TranslationQueryset(QuerySet):
 
     def dates(self, field_name, kind=None, order='ASC'):
         field_name = self.field_translator.get(field_name)
-        if int(django.get_version().split('.')[1][0]) <= 2:
-            from nani.compat.date import DateQuerySet
-            return self._clone(klass=DateQuerySet, setup=True,
-                _field_name=field_name, _kind=kind, _order=order)
         return super(TranslationQueryset, self).dates(field_name, kind=kind, order=order)
 
     def exclude(self, *args, **kwargs):

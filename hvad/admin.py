@@ -1,13 +1,11 @@
 from distutils.version import LooseVersion
 from django.conf import settings
 from django.contrib.admin.options import ModelAdmin, csrf_protect_m, InlineModelAdmin
-from django.contrib.admin.util import (flatten_fieldsets, unquote, 
-    get_deleted_objects)
+from django.contrib.admin.util import (flatten_fieldsets, unquote, get_deleted_objects)
 from django.core.exceptions import ValidationError, PermissionDenied
 from django.core.urlresolvers import reverse
 from django.db import router, transaction
-from django.forms.formsets import formset_factory
-from django.forms.models import ModelForm, BaseModelFormSet, BaseInlineFormSet, model_to_dict
+from django.forms.models import model_to_dict
 from django.forms.util import ErrorList
 from django.http import Http404, HttpResponseRedirect
 from django.shortcuts import render_to_response
@@ -30,6 +28,7 @@ NEW_GET_DELETE_OBJECTS = LooseVersion(django.get_version()) >= LooseVersion('1.3
 
 def get_language_name(language_code):
     return dict(settings.LANGUAGES).get(language_code, language_code)
+
 
 class InlineModelForm(TranslatableModelForm):
     def __init__(self, data=None, files=None, auto_id='id_%s', prefix=None,
@@ -127,7 +126,7 @@ class TranslatableAdmin(ModelAdmin, TranslatableModelAdminMixin):
     deletion_not_allowed_template = 'admin/hvad/deletion_not_allowed.html'
     
     def get_urls(self):
-        from django.conf.urls.defaults import patterns, url
+        from django.conf.urls import patterns, url
         
         urlpatterns = super(TranslatableAdmin, self).get_urls()
 
@@ -233,13 +232,11 @@ class TranslatableAdmin(ModelAdmin, TranslatableModelAdminMixin):
         if NEW_GET_DELETE_OBJECTS:
             (deleted_objects, perms_needed, protected) = get_deleted_objects(
                 [obj], translations_model._meta, request.user, self.admin_site, using)
-        else: # pragma: no cover
+        else:  # pragma: no cover
             (deleted_objects, perms_needed) = get_deleted_objects(
-                [obj], translations_model._meta, request.user, self.admin_site)
+                [obj], translations_model._meta, request.user, self.admin_site, using)
         
-        
-        lang = get_language_name(language_code) 
-            
+        lang = get_language_name(language_code)
 
         if request.POST: # The user has already confirmed the deletion.
             if perms_needed:
@@ -249,7 +246,7 @@ class TranslatableAdmin(ModelAdmin, TranslatableModelAdminMixin):
             self.delete_model_translation(request, obj)
 
             self.message_user(request,
-                _('The %(name)s "%(obj)s" was deleted successfully.') % {
+                ('The %(name)s "%(obj)s" was deleted successfully.') % {
                     'name': force_unicode(opts.verbose_name),
                     'obj': force_unicode(obj_display)
                 }
@@ -348,8 +345,9 @@ class TranslatableAdmin(ModelAdmin, TranslatableModelAdminMixin):
                 return template
             except TemplateDoesNotExist:
                 pass
-        else: # pragma: no cover
+        else:  # pragma: no cover
             pass
+
 
 class TranslatableInlineModelAdmin(InlineModelAdmin, TranslatableModelAdminMixin):
     form = InlineModelForm
@@ -364,10 +362,12 @@ class TranslatableInlineModelAdmin(InlineModelAdmin, TranslatableModelAdminMixin
             fields = flatten_fieldsets(self.declared_fieldsets)
         else:
             fields = None
+
         if self.exclude is None:
             exclude = []
         else:
             exclude = list(self.exclude)
+
         exclude.extend(kwargs.get("exclude", []))
         exclude.extend(self.get_readonly_fields(request, obj))
         # if exclude is an empty list we use None, since that's the actual
@@ -389,7 +389,7 @@ class TranslatableInlineModelAdmin(InlineModelAdmin, TranslatableModelAdminMixin
         return translatable_inlineformset_factory(language, self.parent_model, self.model, **defaults)
 
     def get_urls(self):
-        from django.conf.urls.defaults import patterns, url
+        from django.conf.urls import patterns, url
 
         urlpatterns = super(InlineModelAdmin, self).get_urls()
 

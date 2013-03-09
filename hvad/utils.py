@@ -1,8 +1,7 @@
 from django.db.models.fields import FieldDoesNotExist
 from django.utils.translation import get_language
 from hvad.exceptions import WrongManager
-from django.db.models.loading import get_models
-from django.db.models.fields.related import RelatedObject
+
 
 def combine(trans, klass):
     """
@@ -19,8 +18,10 @@ def combine(trans, klass):
     setattr(combined, opts.translations_cache, trans)
     return combined
 
+
 def get_cached_translation(instance):
     return getattr(instance, instance._meta.translations_cache, None)
+
 
 def get_translation(instance, language_code=None):
     opts = instance._meta
@@ -29,11 +30,13 @@ def get_translation(instance, language_code=None):
     accessor = getattr(instance, opts.translations_accessor)
     return accessor.get(language_code=language_code)
 
+
 def get_translation_aware_manager(model):
-    from nani.manager import TranslationAwareManager
+    from hvad.manager import TranslationAwareManager
     manager = TranslationAwareManager()
     manager.model = model
     return manager
+
 
 class SmartGetFieldByName(object):
     """
@@ -42,7 +45,7 @@ class SmartGetFieldByName(object):
     """
     def __init__(self, real):
         self.real = real
-    
+
     def __call__(self, meta, name):
         assert not isinstance(self.real, SmartGetFieldByName)
         try:
@@ -53,7 +56,7 @@ class SmartGetFieldByName(object):
                                    "an untranslated model, you must use a "
                                    "translation aware manager, you can get one "
                                    "using "
-                                   "nani.utils.get_translation_aware_manager." %
+                                   "hvad.utils.get_translation_aware_manager." %
                                    name)
             raise
 
@@ -78,7 +81,6 @@ def collect_context_modifiers(instance, include=None, exclude=None, extra_kwargs
     context = {}
 
     for thing in dir(instance):
-        if (thing.startswith('context_modifier_') or thing in include) and \
-            not thing in exclude:
-            context.update(getattr(instance, thing, lambda x:x)(**extra_kwargs))
+        if (thing.startswith('context_modifier_') or thing in include) and not thing in exclude:
+            context.update(getattr(instance, thing, lambda x: x)(**extra_kwargs))
     return context
