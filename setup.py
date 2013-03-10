@@ -19,6 +19,10 @@ setup(
     include_package_data=True,
     install_requires=[
         'Django>=1.5',
+        'django-cache-tools',
+    ],
+    dependency_links=[
+        'https://bitbucket.org/creatiweb/django-cache-tools/get/master.tar.gz#egg=django-cache-tools',
     ],
     classifiers=[
         "Development Status :: 3 - Alpha",

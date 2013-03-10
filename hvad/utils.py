@@ -1,3 +1,4 @@
+from cache_tools.utils import get_cached_object
 from django.db.models.fields import FieldDoesNotExist
 from django.utils.translation import get_language
 from hvad.exceptions import WrongManager
@@ -28,7 +29,7 @@ def get_translation(instance, language_code=None):
     if not language_code:
         language_code = get_language()
     accessor = getattr(instance, opts.translations_accessor)
-    return accessor.get(language_code=language_code)
+    return get_cached_object(accessor.model, language_code=language_code, master=instance.pk)
 
 
 def get_translation_aware_manager(model):

@@ -1,3 +1,4 @@
+from cache_tools.fields import CachedForeignKey
 from django.core.exceptions import ImproperlyConfigured
 from django.conf import settings
 from django.db import models
@@ -19,12 +20,12 @@ def create_translations_model(model, related_name, meta, **fields):
     'meta' is a (optional) dictionary of attributes for the translations model's
     inner Meta class.
     'fields' is a dictionary of fields to put on the translations model.
-    
+
     Two fields are enforced on the translations model:
-    
+
         language_code: A 15 char, db indexed field.
         master: A ForeignKey back to the shared model.
-        
+
     Those two fields are unique together, this get's enforced in the inner Meta
     class of the translations table
     """
@@ -32,7 +33,7 @@ def create_translations_model(model, related_name, meta, **fields):
         meta = {}
     unique = [('language_code', 'master')]
     meta['unique_together'] = list(meta.get('unique_together', [])) + unique
-    # Create inner Meta class 
+    # Create inner Meta class
     Meta = type('Meta', (object,), meta)
     if not hasattr(Meta, 'db_table'):
         Meta.db_table = model._meta.db_table + '%stranslation' % getattr(settings, 'NANI_TABLE_NAME_SEPARATOR', '_')
@@ -45,8 +46,8 @@ def create_translations_model(model, related_name, meta, **fields):
     attrs['objects'] = TranslationsModelManager()
     attrs['language_code'] = models.CharField(max_length=15, db_index=True)
     # null=True is so we can prevent cascade deletion
-    attrs['master'] = models.ForeignKey(model, related_name=related_name,
-                                        editable=False, null=True)
+    attrs['master'] = CachedForeignKey(model, related_name=related_name,
+                                       editable=False, null=True)
     # Create and return the new model
     translations_model = ModelBase(name, (BaseTranslationModel,), attrs)
     bases = (model.DoesNotExist, translations_model.DoesNotExist,)
