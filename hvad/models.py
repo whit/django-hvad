@@ -1,4 +1,5 @@
 from cache_tools.fields import CachedForeignKey
+from cache_tools.utils import get_cached_object
 from django.core.exceptions import ImproperlyConfigured
 from django.conf import settings
 from django.db import models
@@ -166,6 +167,7 @@ class TranslatableModelBase(ModelBase):
 class NoTranslation(object):
     pass
 
+
 class TranslatableModel(models.Model):
     """
     Base model for all models supporting translated fields (via TranslatedFields).
@@ -179,13 +181,13 @@ class TranslatableModel(models.Model):
         abstract = True
     
     def __init__(self, *args, **kwargs):
-        tkwargs = {} # translated fields
-        skwargs = {} # shared fields
+        tkwargs = {}  # translated fields
+        skwargs = {}  # shared fields
         
         if 'master' in kwargs.keys():
             raise RuntimeError(
-                    "Cannot init  %s class with a 'master' argument" % \
-                    self.__class__.__name__
+                "Cannot init  %s class with a 'master' argument" %
+                self.__class__.__name__
             )
         
         # filter out all the translated fields (including 'master' and 'language_code')
@@ -266,7 +268,7 @@ class TranslatableModel(models.Model):
         """
         tkwargs = {
             'language_code': language_code,
-            'master': self,
+            'master_id': self.id,
         }
         translated = self._meta.translations_model(**tkwargs)
         setattr(self, self._meta.translations_cache, translated)
@@ -280,23 +282,16 @@ class TranslatableModel(models.Model):
 
     def lazy_translation_getter(self, name, default=None):
         """
-        Lazy translation getter that fetches translations from DB in case the instance is currently untranslated and
-        saves the translation instance in the translation cache
+        Fetch translation from cache or db
         """
-        cache = getattr(self, self._meta.translations_cache, NoTranslation)
-        trans = self._meta.translations_model.objects.filter(master__pk=self.pk)
-        if not cache and cache != NoTranslation and not trans.exists(): # check if there is no translations
-            return default
-        elif getattr(cache, name, NoTranslation) == NoTranslation and trans.exists(): # We have translations, but no specific translation cached
-            trans_in_own_language = trans.filter(language_code=get_language())
-            if trans_in_own_language.exists():
-                trans = trans_in_own_language[0]
-            else:
-                trans = trans[0]
-            setattr(self, self._meta.translations_cache, trans)
+        try:
+            trans = get_cached_object(self._meta.translations_model,
+                                      master_id=self.id,
+                                      language_code=get_language())
             return getattr(trans, name)
-        return getattr(cache, name)
-    
+        except self._meta.translations_model.DoesNotExist:
+            return default
+
     def get_available_languages(self):
         manager = self._meta.translations_model.objects
         return manager.filter(master=self).values_list('language_code', flat=True)
